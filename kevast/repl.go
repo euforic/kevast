@@ -23,14 +23,7 @@ type Session struct {
 
 // NewSession initilizes a new Session with default values
 func NewSession() Session {
-	return Session{
-		db: &Kevast{
-			idx: 0,
-			stores: []store{
-				store{},
-			},
-		},
-	}
+	return Session{db: NewDB()}
 }
 
 // Run starts the REPL session and listens on Stdin for new
