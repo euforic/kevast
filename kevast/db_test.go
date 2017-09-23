@@ -10,9 +10,9 @@ import (
 func TestNewDB(t *testing.T) {
 	tests := []struct {
 		name string
-		want Kevast
+		want *Kevast
 	}{
-		{name: "Basic", want: Kevast{idx: 0, stores: []store{store{}}}},
+		{name: "Basic", want: NewDB()},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -40,7 +40,7 @@ func TestKevast_Write(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &Kevast{idx: 0, stores: []store{store{}}}
+			s := NewDB()
 			if err := s.Write(tt.args.key, tt.args.val); (err != nil) != tt.wantErr {
 				t.Errorf("Kevast.Write() error = %v, wantErr %v", err, tt.wantErr)
 			}

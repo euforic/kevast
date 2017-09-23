@@ -22,16 +22,16 @@ type Kevast struct {
 }
 
 // NewDB creates an initilized Kevast instance
-func NewDB() Kevast {
-	db := Kevast{
+func NewDB() *Kevast {
+	return &Kevast{
 		idx:    0,
 		stores: []store{store{}},
 	}
-	return db
 }
 
 // Write inserts the value for the given key in to the store
 func (s *Kevast) Write(key string, val string) error {
+
 	if key == "" {
 		return errorEmptyKey
 	}
@@ -49,6 +49,7 @@ func (s *Kevast) Write(key string, val string) error {
 // for the value or if the value has been deleted in a previous
 // transaction
 func (s Kevast) Read(key string) (string, error) {
+
 	if key == "" {
 		return "", errorEmptyKey
 	}
@@ -91,8 +92,8 @@ func (s *Kevast) Del(key string) error {
 // Start will begin a transaction and store all
 // changes in a temp store until commited or aborted
 func (s *Kevast) Start() error {
+	s.stores = append(s.stores, store{})
 	s.idx++
-	s.stores = append(s.stores, map[string]string{})
 	return nil
 }
 
@@ -119,22 +120,20 @@ func (s *Kevast) Commit() error {
 		return errorEmptyTx
 	}
 
-	for key, val := range s.stores[s.idx] {
-		if s.idx == 1 && val == "" {
-			delete(s.stores[0], key)
+	for k, v := range s.stores[s.idx] {
+		if s.idx == 1 && v == "" {
+			delete(s.stores[0], k)
 			continue
 		}
-		s.stores[s.idx-1][key] = val
+		s.stores[s.idx-1][k] = v
 	}
+
 	s.clearTx()
 	return nil
 }
 
 // clearTx is a helper function to clear temp stores and free up the memory
 func (s *Kevast) clearTx() {
-	// see for explanation https://github.com/golang/go/wiki/SliceTricks#delete
-	copy(s.stores[:len(s.stores)-1], s.stores[:len(s.stores)-2])
-	s.stores[len(s.stores)-1] = nil // or the zero old tx store
 	s.stores = s.stores[:len(s.stores)-1]
 	s.idx--
 }
