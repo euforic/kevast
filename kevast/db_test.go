@@ -85,7 +85,7 @@ func TestKevast_Del(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		db      Kevast
+		db      *Kevast
 		args    args
 		wantErr bool
 	}{
@@ -153,13 +153,13 @@ func TestKevast_Commit(t *testing.T) {
 	tests := []struct {
 		name    string
 		wantLen int
-		want    Kevast
+		want    *Kevast
 		wantErr bool
 	}{
 		{
 			name:    "Basic",
 			wantLen: 1,
-			want:    Kevast{idx: 0, stores: []store{store{"foo": "bar1", "baz": "qux1"}}},
+			want:    &Kevast{idx: 0, stores: []store{store{"foo": "bar1", "baz": "qux1"}}},
 		},
 	}
 	for _, tt := range tests {
@@ -179,7 +179,7 @@ func TestKevast_Commit(t *testing.T) {
 	}
 }
 
-func compareKevasts(want Kevast, got Kevast) bool {
+func compareKevasts(want *Kevast, got *Kevast) bool {
 	// Check if indexes are equal
 	if want.idx != got.idx {
 		return false
@@ -205,7 +205,7 @@ func compareKevasts(want Kevast, got Kevast) bool {
 	return true
 }
 
-func dbWithData(layers int) Kevast {
+func dbWithData(layers int) *Kevast {
 	stores := []store{}
 
 	for i := 0; i < layers; i++ {
@@ -215,7 +215,7 @@ func dbWithData(layers int) Kevast {
 		})
 	}
 
-	return Kevast{
+	return &Kevast{
 		idx:    int64(layers) - 1,
 		stores: stores,
 	}

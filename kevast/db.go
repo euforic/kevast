@@ -3,6 +3,7 @@ package kevast
 import (
 	"errors"
 	"fmt"
+	"sync"
 )
 
 var (
@@ -19,6 +20,7 @@ type store map[string]string
 type Kevast struct {
 	idx    int64
 	stores []store
+	mu     sync.Mutex
 }
 
 // NewDB creates an initilized Kevast instance
@@ -26,6 +28,7 @@ func NewDB() *Kevast {
 	return &Kevast{
 		idx:    0,
 		stores: []store{store{}},
+		mu:     sync.Mutex{},
 	}
 }
 
@@ -40,7 +43,9 @@ func (s *Kevast) Write(key string, val string) error {
 		return errorEmptyValue
 	}
 
+	s.mu.Lock()
 	s.stores[s.idx][key] = val
+	s.mu.Unlock()
 	return nil
 }
 
@@ -48,14 +53,16 @@ func (s *Kevast) Write(key string, val string) error {
 // This is done by looping through the stores checking
 // for the value or if the value has been deleted in a previous
 // transaction
-func (s Kevast) Read(key string) (string, error) {
+func (s *Kevast) Read(key string) (string, error) {
 
 	if key == "" {
 		return "", errorEmptyKey
 	}
 
 	for i := s.idx; i >= 0; i-- {
+		s.mu.Lock()
 		val, ok := s.stores[i][key]
+		s.mu.Unlock()
 		if !ok {
 			continue
 		}
@@ -81,11 +88,15 @@ func (s *Kevast) Del(key string) error {
 	}
 
 	if s.idx == 0 {
+		s.mu.Lock()
 		delete(s.stores[s.idx], key)
+		s.mu.Unlock()
 		return nil
 	}
 
+	s.mu.Lock()
 	s.stores[s.idx][key] = ""
+	s.mu.Unlock()
 	return nil
 }
 
@@ -120,20 +131,32 @@ func (s *Kevast) Commit() error {
 		return errorEmptyTx
 	}
 
+	var wg sync.WaitGroup
 	for k, v := range s.stores[s.idx] {
+		wg.Add(1)
 		if s.idx == 1 && v == "" {
-			delete(s.stores[0], k)
+			go func(k, v string) {
+				s.mu.Lock()
+				delete(s.stores[0], k)
+				s.mu.Unlock()
+				wg.Done()
+			}(k, v)
 			continue
 		}
+		s.mu.Lock()
 		s.stores[s.idx-1][k] = v
+		s.mu.Unlock()
+		wg.Done()
 	}
-
+	wg.Wait()
 	s.clearTx()
 	return nil
 }
 
 // clearTx is a helper function to clear temp stores and free up the memory
 func (s *Kevast) clearTx() {
+	s.mu.Lock()
 	s.stores = s.stores[:len(s.stores)-1]
+	s.mu.Unlock()
 	s.idx--
 }
